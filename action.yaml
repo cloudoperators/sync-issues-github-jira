@@ -114,6 +114,8 @@ runs:
 
         description="${body}"
         
+        echo "Creating issue ${title}} and linking it as a dependency to ${{ inputs.DEPENDENT_ISSUE}}"
+        
         # Create the new issue
         create_response=$(curl -s -u "${{ inputs.JIRA_USERNAME}}:${{ inputs.JIRA_API_TOKEN}}" -X POST -H "Content-Type: application/json" --data '{
           "fields": {
@@ -149,5 +151,3 @@ runs:
             "key": "$new_issue_key"
           }
         }' "https://${{ inputs.JIRA_URL }}/rest/api/2/issueLink"
-
-        echo "Created issue $new_issue_key and linked it as a dependency to ${{ inputs.DEPENDENT_ISSUE}}"
