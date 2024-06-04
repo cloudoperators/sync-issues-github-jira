@@ -1,5 +1,5 @@
 name: Sync GitHub issues to Jira example
-on: [issues, issue_comment]
+on: [issues]
 
 jobs:
   sync-issues:
@@ -9,4 +9,9 @@ jobs:
       - uses: actions/checkout@v2
       - uses: ./
         with:
-          webhook-url: ${{ secrets.JIRA_WEBHOOK_URL }}
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_COMPONENT: ${{ secrets.JIRA_COMPONENT }}
+          JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
+          JIRA_EPIC_KEY: ${{ secrets.JIRA_EPIC_KEY }}
