@@ -112,7 +112,7 @@ runs:
           comment=$(PYTHONPATH=/usr/share/doc/python3-mistletoe mistletoe -r examples.jira_renderer.JIRARenderer $TMPDIR/comment.md)
         fi
 
-        description="${body}
+        description="${body}"
         
         # Create the new issue
         create_response=$(curl -s -u "${{ inputs.JIRA_USERNAME}}:${{ inputs.JIRA_API_TOKEN}}" -X POST -H "Content-Type: application/json" --data '{
