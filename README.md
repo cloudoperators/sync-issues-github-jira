@@ -21,6 +21,8 @@ jobs:
           JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
           JIRA_EPIC_KEY: ${{ secrets.JIRA_EPIC_KEY }}
 ```
+Alternatively, one can provide the `JIRA_AUTHORIZATION` variable instead of `JIRA_USERNAME` and `JIRA_API_TOKEN`.
+
 
 ## Debug
 

@@ -15,3 +15,4 @@ jobs:
           JIRA_COMPONENT: ${{ secrets.JIRA_COMPONENT }}
           JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
           JIRA_EPIC_KEY: ${{ secrets.JIRA_EPIC_KEY }}
+          JIRA_AUTHORIZATION: ${{ secrets.JIRA_AUTHORIZATION }}

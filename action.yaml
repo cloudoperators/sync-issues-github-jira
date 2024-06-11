@@ -126,10 +126,16 @@ runs:
       env:
         JIRA_USERNAME: '${{ inputs.JIRA_USERNAME }}'
         JIRA_API_TOKEN: '${{ inputs.JIRA_API_TOKEN }}'
+        JIRA_AUTHORIZATION: '${{ inputs.JIRA_AUTHORIZATION }}'
       run: |
         set -eu
-
-        jira_auth=$(echo -n "${JIRA_USERNAME}:${JIRA_API_TOKEN}" | base64 | tr -d '\n') 
+        
+        if [ -z "$JIRA_AUTHORIZATION" ]; then
+          jira_auth=$(echo -n "${JIRA_USERNAME}:${JIRA_API_TOKEN}" | base64 | tr -d '\n')
+        else
+          jira_auth="${JIRA_AUTHORIZATION}"
+        fi
+        
         jira_auth_header="Authorization: Basic $jira_auth"
 
         echo "Creating issue ${{ github.event.issue.title }} and linking it as a dependency to ${{ inputs.DEPENDENT_ISSUE }}"
