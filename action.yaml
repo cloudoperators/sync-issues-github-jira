@@ -38,9 +38,10 @@ runs:
     #  run: echo '${{ toJSON(github) }}'
     #  shell: bash
     - name: restrict action to labelled issues and issue comments
+      shell: bash
       run: |
         set -eux
-
+        
         echo "NeedsJiraUpdate=false" >> $GITHUB_ENV
 
         if [ ${{ github.event_name }} != "issues" ] && [ ${{ github.event_name }} != "issue_comment" ]; then
@@ -80,74 +81,120 @@ runs:
 
         # last one wins
         echo "NeedsJiraUpdate=true" >> $GITHUB_ENV
-      shell: bash
 
-    - name: "Update jira"
+    - name: Remove specific label from issue
       if: ${{ env.NeedsJiraUpdate == 'true' }}
-      env:
-        # ID is the html url to keep a link between systems as there is no way to force an ID on Jira side.
-        id: ${{ github.event.issue.html_url }}
-        title: ${{ github.event.issue.title }}
-        body: ${{ github.event.issue.body }}
-        author: ${{ github.event.issue.user.login }}
-        component: ${{ inputs.component }}
-        commentAuthor: ${{ github.actor }}
-        comment: ${{ github.event.comment.body }}
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const labelToRemove = ${{ inputs.label }};
+          const { owner, repo } = context.repo;
+          const issue_number = context.issue.number;
+          
+          // Remove the label
+          await github.issues.removeLabel({
+            owner,
+            repo,
+            issue_number,
+            name: labelToRemove
+          });
+          console.log(`Label "${labelToRemove}" removed from issue
+
+    - name: "Convert markdown to jira"
+      if: ${{ env.NeedsJiraUpdate == 'true' }}
+      id: convert_markdown
       shell: bash
       run: |
         set -eux
-
-        # Convert markdown to JIRA using mistletoe package which is available starting with impish.
-        # Since GH runners only have LTS versions it's safe to only check for focal which doesn't have the package.
-        if [ $(lsb_release -c -s) == "focal" ]; then
-          echo "Converting Markdown to JIRA is only possible starting with Ubuntu 22.04 (jammy). Pushing verbatim content to JIRA..."
-        else
-          TMPDIR=$(mktemp -d)
-          trap 'rm -rf -- "$TMPDIR"' EXIT
-
-          sudo apt install -y python3-mistletoe
-          echo ${body} > $TMPDIR/body.md
-          echo ${comment} > $TMPDIR/comment.md
-          body=$(PYTHONPATH=/usr/share/doc/python3-mistletoe mistletoe -r examples.jira_renderer.JIRARenderer $TMPDIR/body.md)
-          comment=$(PYTHONPATH=/usr/share/doc/python3-mistletoe mistletoe -r examples.jira_renderer.JIRARenderer $TMPDIR/comment.md)
-        fi
-
-        description="${body}"
         
-        echo "Creating issue ${title}} and linking it as a dependency to ${{ inputs.DEPENDENT_ISSUE}}"
+        # Install markdown to jira converter
+        sudo apt update
+        sudo apt install -y python3
+        pip3 install mistletoe
         
-        # Create the new issue
-        create_response=$(curl -s -u "${{ inputs.JIRA_USERNAME}}:${{ inputs.JIRA_API_TOKEN}}" -X POST -H "Content-Type: application/json" --data '{
+        # Convert mardown to jira.
+        TMPDIR=$(mktemp -d)
+        trap 'rm -rf -- "$TMPDIR"' EXIT
+        echo "${{ github.event.issue.body }}" > $TMPDIR/body.md
+        description=$(mistletoe $TMPDIR/body.md --renderer mistletoe.contrib.jira_renderer.JiraRenderer)
+        echo "description=${description}" >> $GITHUB_OUTPUT    
+
+    - name: "Update jira"
+      if: ${{ env.NeedsJiraUpdate == 'true' }}
+      id: update_jira
+      shell: bash
+      env:
+        JIRA_USERNAME: '${{ inputs.JIRA_USERNAME }}'
+        JIRA_API_TOKEN: '${{ inputs.JIRA_API_TOKEN }}'
+      run: |
+        set -eu
+
+        jira_auth=$(echo -n "${JIRA_USERNAME}:${JIRA_API_TOKEN}" | base64 | tr -d '\n') 
+        jira_auth_header="Authorization: Basic $jira_auth"
+
+        echo "Creating issue ${{ github.event.issue.title }} and linking it as a dependency to ${{ inputs.DEPENDENT_ISSUE }}"
+        create_body='{
           "fields": {
             "project": {
               "key": "${{ inputs.JIRA_PROJECT_KEY }}"
             },
-            "summary": "$title",
-            "description": "$description",
+            "summary": "${{ github.event.issue.title }}",
+            "description": "${{ steps.convert_markdown.outputs.description }}",
             "issuetype": {
               "name": "${{ inputs.JIRA_ISSUE_TYPE }}"
             },
+            "customfield_15140": "${{ inputs.JIRA_EPIC_KEY }}",
             "components": [
               {
                 "name": "${{ inputs.JIRA_COMPONENT }}"
               }
-            ],
-            "customfield_10008": "${{ inputs.JIRA_EPIC_KEY }}"
+            ]
           }
-        }' "https://${{ inputs.JIRA_URL }}/rest/api/2/issue/")
+        }'
         
         # Extract the new issue key from the response
+        create_response=$(curl -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${create_body}" "${{ inputs.JIRA_URL }}/rest/api/2/issue/")
         new_issue_key=$(echo $create_response | jq -r '.key')
+        echo "jira_issue_key=${new_issue_key}" >> $GITHUB_OUTPUT    
+        echo "created new issue in Jira: ${new_issue_key}"
+
+        # Link the new issue to the github issue.
+        echo "Linking Jira issue to GitHub issue"
+        gh_link_body='{
+          "object": {
+            "url" : "${{ github.event.issue.html_url }}",
+            "title" : "GitHub Issue"
+          }
+        }'
+        curl --silent -o /dev/null -w "%{http_code}" -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${gh_link_body}" "https://${{ inputs.JIRA_URL }}/rest/api/2/issue/${new_issue_key}/remotelink"
+        echo "Linked ${new_issue_key} to GitHub issue ${{ github.event.issue.number }}"
         
-        # Link the new issue to the existing issue
-        curl -u "${{ inputs.JIRA_USERNAME}}:${{ inputs.JIRA_API_TOKEN}}" -X POST -H "Content-Type: application/json" --data '{
+        echo "Linking Jira issue to epic"
+        epic_link_body='{
           "type": {
             "name": "${{ inputs.JIRA_LINK_TYPE }}"
           },
           "inwardIssue": {
-            "key": "${{inputs.DEPENDENT_ISSUE}}"
+            "key": "${{ inputs.JIRA_EPIC_KEY }}"
           },
           "outwardIssue": {
             "key": "$new_issue_key"
           }
-        }' "https://${{ inputs.JIRA_URL }}/rest/api/2/issueLink"
+        }'
+        curl --silent -o /dev/null -w "%{http_code}" -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${epic_link_body}" "https://${{ inputs.JIRA_URL }}/rest/api/2/issuelink"
+
+    - name: Remove specific label from issue
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        LABEL_TO_REMOVE="${{ inputs.label }}"
+        ISSUE_NUMBER=${{ github.event.issue.number }}
+        OWNER=${{ github.repository_owner }}
+        REPO=${{ github.event.repository.name }}
+        
+        echo "Removing label ${LABEL_TO_REMOVE} from issue ${ISSUE_NUMBER}"
+        curl -s -X DELETE \
+          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/$OWNER/$REPO/issues/$ISSUE_NUMBER/labels/$LABEL_TO_REMOVE

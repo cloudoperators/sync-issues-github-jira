@@ -53,17 +53,23 @@ To trigger your action, you need to listen on both `issues` and `issue_comment` 
 ### Use jira as importing label with no components
 
 ```yaml
-name: Sync GitHub issues to Jira
-on: [issues, issue_comment]
+name: Sync GitHub issues to Jira example
+on: [issues]
 
 jobs:
   sync-issues:
     name: Sync issues to Jira
     runs-on: ubuntu-latest
     steps:
-      - uses: canonical/sync-issues-github-jira@v1
+      - uses: actions/checkout@v2
+      - uses: ./
         with:
-          webhook-url: ${{ secrets.JIRA_WEBHOOK_URL }}
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_COMPONENT: ${{ secrets.JIRA_COMPONENT }}
+          JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
+          JIRA_EPIC_KEY: ${{ secrets.JIRA_EPIC_KEY }}
 ```
 
 As stated in the description, use a secret to store your Jira webhook URL. Otherwise, anyone who has access to it
@@ -71,3 +77,11 @@ will be able to post to your Jira board.
 
 This default configuration will not attach any Jira component to your issue and will trigger on any GitHub issue action
 with the label `jira`.
+
+## Debug
+
+Debug using [act](https://github.com/nektos/act) with the following command:
+
+```bash
+act -s JIRA_URL=https://jira.tld -s JIRA_USERNAME=user -s JIRA_API_TOKEN='pass' -s JIRA_COMPONENT=component -s JIRA_PROJECT_KEY=project -s JIRA_ISSUE_TYPE=Task -s JIRA_EPIC_KEY=epic -s JIRA_LABELS=bug -e test-issue.json issues
+```

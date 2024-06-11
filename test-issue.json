@@ -1,0 +1,29 @@
+{
+  "action": "labeled",
+  "issue": {
+    "number": 1,
+    "title": "Test issue",
+    "body": "This is a test issue for local testing",
+    "user": {
+      "login": "your_username"
+    },
+    "labels": [
+      {
+        "name": "jira"
+      }
+    ],
+    "html_url": "https://github.com/cloudoperators/sync-issues-github-jira/issues/1"
+  },
+  "label": {
+    "name": "jira"
+  },
+  "repository": {
+    "name": "sync-issues-github-jira",
+    "owner": {
+      "login": "cloudoperators"
+    }
+  },
+  "sender": {
+    "login": "your_username"
+  }
+}
