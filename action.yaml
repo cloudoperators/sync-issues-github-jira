@@ -191,8 +191,6 @@ runs:
 
     - name: Remove specific label from issue
       shell: bash
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         LABEL_TO_REMOVE="${{ inputs.label }}"
         ISSUE_NUMBER=${{ github.event.issue.number }}
@@ -201,6 +199,6 @@ runs:
         
         echo "Removing label ${LABEL_TO_REMOVE} from issue ${ISSUE_NUMBER}"
         curl -s -X DELETE \
-          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
           -H "Accept: application/vnd.github.v3+json" \
           https://api.github.com/repos/$OWNER/$REPO/issues/$ISSUE_NUMBER/labels/$LABEL_TO_REMOVE
