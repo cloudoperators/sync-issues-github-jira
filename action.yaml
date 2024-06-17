@@ -258,14 +258,7 @@ runs:
 
     - name: Remove specific label from issue
       shell: bash
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Skip if testing locally.
-        if [[ -z "${GH_TOKEN}" ]]; then
-          exit 0
-        fi
-        
         label_to_remove="${{ inputs.label }}"
         issue_number=${{ github.event.issue.number }}
         owner=${{ github.repository_owner }}
@@ -273,6 +266,6 @@ runs:
         
         echo "Removing label ${label_to_remove} from issue ${issue_number}"
         curl --silent -X DELETE \
-          -H 'Authorization: Bearer ${ GH_TOKEN }' \
+          -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
           -H "Accept: application/vnd.github+json" \
           "https://api.github.com/repos/${owner}/${repo}/issues/${issue_number}/labels/${label_to_remove}"
