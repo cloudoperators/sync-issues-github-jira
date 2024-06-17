@@ -81,28 +81,6 @@ runs:
         # last one wins
         echo "NeedsJiraUpdate=true" >> $GITHUB_ENV
 
-    - name: Remove specific label from issue
-      if: ${{ env.NeedsJiraUpdate == 'true' }}
-      uses: actions/github-script@v7
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        script: |
-          const labelToRemove = ${{ inputs.label }};
-          const { owner, repo } = context.repo;
-          const issue_number = context.issue.number;
-          
-          console.log(`Removing label "${labelToRemove}" from issue`);
-          
-          // Remove the label
-          await github.issues.removeLabel({
-            owner,
-            repo,
-            issue_number,
-            name: labelToRemove
-          });
-          console.log(`Label "${labelToRemove}" removed from issue
-
     - name: "Convert markdown to jira"
       if: ${{ env.NeedsJiraUpdate == 'true' }}
       id: convert_markdown
