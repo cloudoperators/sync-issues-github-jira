@@ -234,6 +234,20 @@ runs:
         fi
         echo "Linked jira issue ${{ steps.create_jira_issue.outputs.jira_issue_key }} to jira epic ${{ inputs.JIRA_EPIC_KEY }}"
 
+    - name: Adding label to GitHub issue
+      shell: bash
+      run: |
+        issue_number=${{ github.event.issue.number }}
+        owner=${{ github.repository_owner }}
+        repo=${{ github.event.repository.name }}
+        
+        echo "Adding label ${{ steps.create_jira_issue.outputs.jira_issue_key }} to issue ${issue_number}"
+        curl --silent -X POST \
+          -H 'Authorization: Bearer ${{ inputs.GITHUB_TOKEN }}' \
+          -H "Accept: application/vnd.github+json" \
+          -d '{"labels":["${{ steps.create_jira_issue.outputs.jira_issue_key }}"]}' \
+          "https://api.github.com/repos/${owner}/${repo}/issues/${issue_number}/labels"
+
     - name: Remove specific label from issue
       shell: bash
       run: |
