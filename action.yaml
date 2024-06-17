@@ -80,9 +80,10 @@ runs:
         
         # Exit if the issue already has an OWS label. 
         # TODO: Support updates to Jira issues.
-        for label in "${{ github.event.issue.labels.*.name }}"; do
-          if [[ "$label" == OWS* ]]; then
-            echo "Issue has a label starting with OWS, skipping"
+        labels=$(jq -r '.issue.labels[].name' "$GITHUB_EVENT_PATH")
+        for lbl in $labels; do
+          if [[ "$lbl" == OWS* ]]; then
+            echo "Issue has a label bestarting with OWS, skipping"
             exit 0
           fi
         done
