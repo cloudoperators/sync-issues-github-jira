@@ -77,6 +77,15 @@ runs:
           echo "Not interested in this action, skipping"
           exit 0
         fi
+        
+        # Exit if the issue already has an OWS label. 
+        # TODO: Support updates to Jira issues.
+        for label in "${{ github.event.issue.labels.*.name }}"; do
+          if [[ "$label" == OWS* ]]; then
+            echo "Issue has a label starting with OWS, skipping"
+            exit 0
+          fi
+        done
 
         # last one wins
         echo "NeedsJiraUpdate=true" >> $GITHUB_ENV
@@ -235,6 +244,7 @@ runs:
         echo "Linked jira issue ${{ steps.create_jira_issue.outputs.jira_issue_key }} to jira epic ${{ inputs.JIRA_EPIC_KEY }}"
 
     - name: Adding label to GitHub issue
+      if: ${{ env.NeedsJiraUpdate == 'true' }}
       shell: bash
       run: |
         issue_number=${{ github.event.issue.number }}
@@ -249,6 +259,7 @@ runs:
           "https://api.github.com/repos/${owner}/${repo}/issues/${issue_number}/labels"
 
     - name: Remove specific label from issue
+      if: ${{ env.NeedsJiraUpdate == 'true' }}
       shell: bash
       run: |
         label_to_remove="${{ inputs.label }}"
