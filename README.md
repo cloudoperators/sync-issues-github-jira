@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: ./
+      - uses: cloudoperators/sync-issues-github-jira@main
         with:
           JIRA_URL: ${{ secrets.JIRA_URL }}
           JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
@@ -22,7 +22,7 @@ jobs:
           JIRA_EPIC_KEY: ${{ secrets.JIRA_EPIC_KEY }}
 ```
 Alternatively, one can provide the `JIRA_AUTHORIZATION` variable instead of `JIRA_USERNAME` and `JIRA_API_TOKEN`.
-
+Now all issues labeled `jira` will be synced to Jira.
 
 ## Debug
 

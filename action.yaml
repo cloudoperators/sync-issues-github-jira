@@ -22,10 +22,6 @@ inputs:
     description: Jira issue type.
     required: false
     default: "Feature"
-  JIRA_LINK_TYPE:
-    description: Jira link type.
-    required: false
-    default: "Dependency"
   label:
     description: 'Label which will trigger a Jira import.'
     required: true
@@ -85,11 +81,15 @@ runs:
     - name: Remove specific label from issue
       if: ${{ env.NeedsJiraUpdate == 'true' }}
       uses: actions/github-script@v7
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         script: |
           const labelToRemove = ${{ inputs.label }};
           const { owner, repo } = context.repo;
           const issue_number = context.issue.number;
+          
+          console.log(`Removing label "${labelToRemove}" from issue`);
           
           // Remove the label
           await github.issues.removeLabel({
@@ -119,9 +119,9 @@ runs:
         description=$(mistletoe $TMPDIR/body.md --renderer mistletoe.contrib.jira_renderer.JiraRenderer)
         echo "description=${description}" >> $GITHUB_OUTPUT    
 
-    - name: "Update jira"
+    - name: "Create issue in jira"
       if: ${{ env.NeedsJiraUpdate == 'true' }}
-      id: update_jira
+      id: create_jira_issue
       shell: bash
       env:
         JIRA_USERNAME: '${{ inputs.JIRA_USERNAME }}'
@@ -130,14 +130,13 @@ runs:
       run: |
         set -eu
         
-        if [ -z "$JIRA_AUTHORIZATION" ]; then
+        if [[ -z "${JIRA_AUTHORIZATION}" ]]; then
           jira_auth=$(echo -n "${JIRA_USERNAME}:${JIRA_API_TOKEN}" | base64 | tr -d '\n')
         else
           jira_auth="${JIRA_AUTHORIZATION}"
         fi
-        
         jira_auth_header="Authorization: Basic $jira_auth"
-
+        
         echo "Creating issue ${{ github.event.issue.title }} and linking it as a dependency to ${{ inputs.DEPENDENT_ISSUE }}"
         create_body='{
           "fields": {
@@ -149,7 +148,6 @@ runs:
             "issuetype": {
               "name": "${{ inputs.JIRA_ISSUE_TYPE }}"
             },
-            "customfield_15140": "${{ inputs.JIRA_EPIC_KEY }}",
             "components": [
               {
                 "name": "${{ inputs.JIRA_COMPONENT }}"
@@ -157,48 +155,124 @@ runs:
             ]
           }
         }'
+        create_response=$(curl --silent -w "%{http_code}" -o /tmp/create_issue_response.json -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${create_body}" "${{ inputs.JIRA_URL }}/rest/api/2/issue/")
         
-        # Extract the new issue key from the response
-        create_response=$(curl -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${create_body}" "${{ inputs.JIRA_URL }}/rest/api/2/issue/")
-        new_issue_key=$(echo $create_response | jq -r '.key')
-        echo "jira_issue_key=${new_issue_key}" >> $GITHUB_OUTPUT    
+        http_status=$(tail -n1 <<< "$create_response")
+        if [[ $http_status != 2* ]]; then
+          echo "Creating issue failed with status $http_status"
+          exit 1
+        fi
+        
+        new_issue_key=$(jq -r '.key' /tmp/create_issue_response.json)
+        echo "jira_issue_key=${new_issue_key}" >> $GITHUB_OUTPUT
         echo "created new issue in Jira: ${new_issue_key}"
+        
+        # Yes, that's indeed neccessary. Otherwise the link request will fail.
+        echo "Waiting 10s to give the Jira API some to process the new issue before linking it subsequently"
+        sleep 10
 
-        # Link the new issue to the github issue.
+    - name: "Link issue to Github"
+      if: ${{ env.NeedsJiraUpdate == 'true' }}
+      id: link_to_github
+      shell: bash
+      env:
+        JIRA_USERNAME: '${{ inputs.JIRA_USERNAME }}'
+        JIRA_API_TOKEN: '${{ inputs.JIRA_API_TOKEN }}'
+        JIRA_AUTHORIZATION: '${{ inputs.JIRA_AUTHORIZATION }}'
+      run: |
+        set -eu
+        
+        if [[ -z "${JIRA_AUTHORIZATION}" ]]; then
+          jira_auth=$(echo -n "${JIRA_USERNAME}:${JIRA_API_TOKEN}" | base64 | tr -d '\n')
+        else
+          jira_auth="${JIRA_AUTHORIZATION}"
+        fi
+        jira_auth_header="Authorization: Basic $jira_auth"
+        
         echo "Linking Jira issue to GitHub issue"
         gh_link_body='{
           "object": {
-            "url" : "${{ github.event.issue.html_url }}",
-            "title" : "GitHub Issue"
+            "url": "${{ github.event.issue.html_url }}",
+            "title": "GitHub Issue"
+          },
+          "globalId": "github:${{ github.event.issue.html_url }}",
+          "relationship": "links to",
+          "type": {
+            "name": "GitHub Issue",
+            "inward": "links to",
+            "outward": "is linked to"
           }
         }'
-        curl --silent -o /dev/null -w "%{http_code}" -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${gh_link_body}" "https://${{ inputs.JIRA_URL }}/rest/api/2/issue/${new_issue_key}/remotelink"
-        echo "Linked ${new_issue_key} to GitHub issue ${{ github.event.issue.number }}"
+        link_gh_response=$(curl --silent -w "%{http_code}" -o /tmp/link_gh_response.json -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${gh_link_body}" "${{ inputs.JIRA_URL }}/rest/api/2/issue/${{ steps.create_jira_issue.outputs.jira_issue_key }}/remotelink")
+        echo $link_gh_response
+        echo "snafu"
+        echo $(cat /tmp/link_gh_response.json) 
         
+        http_status=$(tail -n1 <<< "$link_gh_response")
+        if [[ $http_status != 2* ]]; then
+          echo "Linking github issue failed with status $http_status"
+          exit 1
+        fi
+        echo "Linked ${new_issue_key} to GitHub issue ${{ github.event.issue.number }}"
+
+    - name: "Link issue to Epic"
+      if: ${{ env.NeedsJiraUpdate == 'true' }}
+      id: link_to_epic
+      shell: bash
+      env:
+        JIRA_USERNAME: '${{ inputs.JIRA_USERNAME }}'
+        JIRA_API_TOKEN: '${{ inputs.JIRA_API_TOKEN }}'
+        JIRA_AUTHORIZATION: '${{ inputs.JIRA_AUTHORIZATION }}'
+      run: |
+        set -eu
+        
+        if [[ -z "${JIRA_AUTHORIZATION}" ]]; then
+          jira_auth=$(echo -n "${JIRA_USERNAME}:${JIRA_API_TOKEN}" | base64 | tr -d '\n')
+        else
+          jira_auth="${JIRA_AUTHORIZATION}"
+        fi
+        jira_auth_header="Authorization: Basic $jira_auth"
+
         echo "Linking Jira issue to epic"
         epic_link_body='{
           "type": {
-            "name": "${{ inputs.JIRA_LINK_TYPE }}"
+            "name": "Dependency",
+            "inward": "has dependency",
+            "outward": "depends on"
           },
           "inwardIssue": {
             "key": "${{ inputs.JIRA_EPIC_KEY }}"
           },
           "outwardIssue": {
-            "key": "$new_issue_key"
+            "key": "${{ steps.create_jira_issue.outputs.jira_issue_key }}"
           }
         }'
-        curl --silent -o /dev/null -w "%{http_code}" -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${epic_link_body}" "https://${{ inputs.JIRA_URL }}/rest/api/2/issuelink"
+        link_epic_response=$(curl --silent -w "%{http_code}" -o /tmp/link_epic_response.json -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${epic_link_body}" "${{ inputs.JIRA_URL }}/rest/api/2/issueLink")
+        
+        http_status=$(tail -n1 <<< "$link_epic_response")
+        if [[ $http_status != 2* ]]; then
+          echo "Linking epic failed with status $http_status"
+          exit 1
+        fi
+        echo "Linked jira issue ${{ steps.create_jira_issue.outputs.jira_issue_key }} to jira epic ${{ inputs.JIRA_EPIC_KEY }}"
 
     - name: Remove specific label from issue
       shell: bash
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        LABEL_TO_REMOVE="${{ inputs.label }}"
-        ISSUE_NUMBER=${{ github.event.issue.number }}
-        OWNER=${{ github.repository_owner }}
-        REPO=${{ github.event.repository.name }}
+        # Skip if testing locally.
+        if [[ -z "${GH_TOKEN}" ]]; then
+          exit 0
+        fi
         
-        echo "Removing label ${LABEL_TO_REMOVE} from issue ${ISSUE_NUMBER}"
-        curl -s -X DELETE \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/$OWNER/$REPO/issues/$ISSUE_NUMBER/labels/$LABEL_TO_REMOVE
+        label_to_remove="${{ inputs.label }}"
+        issue_number=${{ github.event.issue.number }}
+        owner=${{ github.repository_owner }}
+        repo=${{ github.event.repository.name }}
+        
+        echo "Removing label ${label_to_remove} from issue ${issue_number}"
+        curl --silent -X DELETE \
+          -H 'Authorization: Bearer ${ GH_TOKEN }' \
+          -H "Accept: application/vnd.github+json" \
+          "https://api.github.com/repos/${owner}/${repo}/issues/${issue_number}/labels/${label_to_remove}"
