@@ -24,7 +24,7 @@ inputs:
   JIRA_ISSUE_TYPE:
     description: Jira issue type.
     required: false
-    default: "Feature"
+    default: "Roadmap Item"
   GITHUB_TOKEN:
     description: 'GITHUB_TOKEN to be stored as a secret'
     required: false
