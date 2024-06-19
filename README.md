@@ -16,13 +16,14 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JIRA_URL: ${{ secrets.JIRA_URL }}
+          # Provide either JIRA_USERNAME and JIRA_API_TOKEN or JIRA_AUTHORIZATION.
           JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           JIRA_COMPONENT: ${{ secrets.JIRA_COMPONENT }}
           JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
           JIRA_EPIC_KEY: ${{ secrets.JIRA_EPIC_KEY }}
 ```
-Alternatively, one can provide the `JIRA_AUTHORIZATION` variable instead of `JIRA_USERNAME` and `JIRA_API_TOKEN`.
+Alternatively, one can provide the `JIRA_AUTHORIZATION` which is mutually exclusive with `JIRA_USERNAME` and `JIRA_API_TOKEN`.
 Now all issues labeled `jira` will be synced to Jira.
 
 ## Debug

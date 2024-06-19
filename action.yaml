@@ -4,11 +4,14 @@ inputs:
     description: Jira URL domain to be stored as a secret.
     required: true
   JIRA_USERNAME:
-    description: Jira username to be stored as a secret.
-    required: true
+    description: Jira username to be stored as a secret. Provide with Jira API token.
+    required: false
   JIRA_API_TOKEN:
-    description: Jira API token to be stored as a secret.
-    required: true
+    description: Jira API token to be stored as a secret. Provide with Jira username.
+    required: false
+  JIRA_AUTHORIZATION:
+    description: Jira authorization to be stored as a secret. Mutually exclusive with JIRA_USERNAME and JIRA_API_TOKEN.
+    required: false
   JIRA_COMPONENT:
     description: Jira component to be stored as a secret.
     required: true
@@ -24,7 +27,7 @@ inputs:
     default: "Feature"
   GITHUB_TOKEN:
     description: 'GITHUB_TOKEN to be stored as a secret'
-    required: true
+    required: false
   label:
     description: 'Label which will trigger a Jira import.'
     required: true
