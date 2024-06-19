@@ -3,13 +3,49 @@
   "issue": {
     "number": 1,
     "title": "Test issue",
-    "body": "This is a test issue for local testing",
+    "body": "Umbrella issue for tracking the cluster registry feature in the roadmap 2023 Kanban board.\nGranular sub-issues can be found via label `WP2.3.4.4 Cluster registry`.\n\nManage operational tooling in registered Kubernetes cluster via Greenhouse.\n\nAcceptance criteria:\n- [x] Onboard, off-board clusters to Greenhouse with direct access via UI or kubectl\n- [x]  Organization administrators can configure Plugins for 1..N clusters\n- [x] Greenhouse dashboard provides a cluster overview and management page\n- [x] Greenhouse dashboard provides a cluster detail view showing at least the kubernetes version, node stati and configured plugins\n- [ ] Authentication for onboarded clusters is managed via unified registry\n",
     "user": {
       "login": "your_username"
     },
     "labels": [
       {
         "name": "jira"
+      },
+      {
+        "id": 6659517060,
+        "node_id": "LA_kwDOLW_UJc8AAAABjPAqhA",
+        "url": "https://api.github.com/repos/cloudoperators/greenhouse/labels/WP2.3%20Monitoring",
+        "name": "WP2.3 Monitoring",
+        "color": "81435F",
+        "default": false,
+        "description": ""
+      },
+      {
+        "id": 6659536756,
+        "node_id": "LA_kwDOLW_UJc8AAAABjPB3dA",
+        "url": "https://api.github.com/repos/cloudoperators/greenhouse/labels/WP2.3.4%20Operations%20Platform",
+        "name": "WP2.3.4 Operations Platform",
+        "color": "b60205",
+        "default": false,
+        "description": ""
+      },
+      {
+        "id": 6675425148,
+        "node_id": "LA_kwDOLW_UJc8AAAABjeLnfA",
+        "url": "https://api.github.com/repos/cloudoperators/greenhouse/labels/WP2.3.4.4%20Cluster%20registry",
+        "name": "WP2.3.4.4 Cluster registry",
+        "color": "7C107F",
+        "default": false,
+        "description": ""
+      },
+      {
+        "id": 6875396841,
+        "node_id": "LA_kwDOLW_UJc8AAAABmc466Q",
+        "url": "https://api.github.com/repos/cloudoperators/greenhouse/labels/backlog",
+        "name": "backlog",
+        "color": "bfd4f2",
+        "default": false,
+        "description": "Issues that are part of the backlog"
       }
     ],
     "html_url": "https://github.com/cloudoperators/sync-issues-github-jira/issues/1"

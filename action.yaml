@@ -96,19 +96,23 @@ runs:
       id: convert_markdown
       shell: bash
       run: |
-        set -eux
+        set -eu
         
         # Install markdown to jira converter
         sudo apt update
-        sudo apt install -y python3
-        pip3 install mistletoe
+        sudo apt install -y pandoc jq
         
         # Convert mardown to jira.
         TMPDIR=$(mktemp -d)
         trap 'rm -rf -- "$TMPDIR"' EXIT
-        echo "${{ github.event.issue.body }}" > $TMPDIR/body.md
-        description=$(mistletoe $TMPDIR/body.md --renderer mistletoe.contrib.jira_renderer.JiraRenderer)
-        echo "description=${description}" >> $GITHUB_OUTPUT    
+        
+        echo '${{ github.event.issue.body }}' > $TMPDIR/body.md
+        sed -i 's/`//g' $TMPDIR/body.md
+        
+        pandoc -f markdown -t jira $TMPDIR/body.md -o $TMPDIR/description.txt
+        description=$(cat $TMPDIR/description.txt)
+        description_escaped=$(jq -Rs . <<< "$description")
+        echo "description=${description_escaped}" >> $GITHUB_OUTPUT
 
     - name: "Create issue in jira"
       if: ${{ env.NeedsJiraUpdate == 'true' }}
