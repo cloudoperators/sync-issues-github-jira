@@ -6,6 +6,9 @@ Example github workflow
 name: Sync GitHub issues to Jira example
 on: [issues]
 
+concurrency:
+  group: sync-issues-to-jira-${{ github.event.issue.number }}
+
 jobs:
   sync-issues:
     name: Sync issues to Jira
