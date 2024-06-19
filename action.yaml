@@ -42,7 +42,7 @@ runs:
     - name: restrict action to labelled issues and issue comments
       shell: bash
       run: |
-        set -eux
+        set -eu
         
         echo "NeedsJiraUpdate=false" >> $GITHUB_ENV
 
@@ -71,7 +71,7 @@ runs:
           toconsider=true
         fi
         if [ "${toconsider}" == false ]; then
-          echo "Our desired label not found on issue or not unlabeled, skipping"
+          echo "Our desired label '${{ inputs.label }}' is not found on the issue, skipping"
           exit 0
         fi
 
@@ -142,7 +142,7 @@ runs:
               "key": "${{ inputs.JIRA_PROJECT_KEY }}"
             },
             "summary": "${{ github.event.issue.title }}",
-            "description": "${{ steps.convert_markdown.outputs.description }}",
+            "description": ${{ steps.convert_markdown.outputs.description }},
             "issuetype": {
               "name": "${{ inputs.JIRA_ISSUE_TYPE }}"
             },
