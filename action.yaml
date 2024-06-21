@@ -150,7 +150,8 @@ runs:
               {
                 "name": "${{ inputs.JIRA_COMPONENT }}"
               }
-            ]
+            ],
+            "customfield_15140": "${{ inputs.JIRA_EPIC_KEY }}"
           }
         }'
         create_response=$(curl --silent -w "%{http_code}" -o /tmp/create_issue_response.json -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${create_body}" "${{ inputs.JIRA_URL }}/rest/api/2/issue/")
