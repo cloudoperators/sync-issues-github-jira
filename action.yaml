@@ -211,46 +211,46 @@ runs:
         fi
         echo "Linked ${{ steps.create_jira_issue.outputs.jira_issue_key }} to GitHub issue ${{ github.event.issue.number }}"
 
-    - name: "Link issue to Epic"
-      if: ${{ env.NeedsJiraUpdate == 'true' }}
-      id: link_to_epic
-      shell: bash
-      env:
-        JIRA_USERNAME: '${{ inputs.JIRA_USERNAME }}'
-        JIRA_API_TOKEN: '${{ inputs.JIRA_API_TOKEN }}'
-        JIRA_AUTHORIZATION: '${{ inputs.JIRA_AUTHORIZATION }}'
-      run: |
-        set -eu
-        
-        if [[ -z "${JIRA_AUTHORIZATION}" ]]; then
-          jira_auth=$(echo -n "${JIRA_USERNAME}:${JIRA_API_TOKEN}" | base64 | tr -d '\n')
-        else
-          jira_auth="${JIRA_AUTHORIZATION}"
-        fi
-        jira_auth_header="Authorization: Basic $jira_auth"
-
-        echo "Linking Jira issue to epic"
-        epic_link_body='{
-          "type": {
-            "name": "Dependency",
-            "inward": "has dependency",
-            "outward": "depends on"
-          },
-          "inwardIssue": {
-            "key": "${{ inputs.JIRA_EPIC_KEY }}"
-          },
-          "outwardIssue": {
-            "key": "${{ steps.create_jira_issue.outputs.jira_issue_key }}"
-          }
-        }'
-        link_epic_response=$(curl --silent -w "%{http_code}" -o /tmp/link_epic_response.json -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${epic_link_body}" "${{ inputs.JIRA_URL }}/rest/api/2/issueLink")
-        
-        http_status=$(tail -n1 <<< "$link_epic_response")
-        if [[ $http_status != 2* ]]; then
-          echo "Linking epic failed with status $http_status"
-          exit 1
-        fi
-        echo "Linked jira issue ${{ steps.create_jira_issue.outputs.jira_issue_key }} to jira epic ${{ inputs.JIRA_EPIC_KEY }}"
+#    - name: "Link issue to Epic"
+#      if: ${{ env.NeedsJiraUpdate == 'true' }}
+#      id: link_to_epic
+#      shell: bash
+#      env:
+#        JIRA_USERNAME: '${{ inputs.JIRA_USERNAME }}'
+#        JIRA_API_TOKEN: '${{ inputs.JIRA_API_TOKEN }}'
+#        JIRA_AUTHORIZATION: '${{ inputs.JIRA_AUTHORIZATION }}'
+#      run: |
+#        set -eu
+#
+#        if [[ -z "${JIRA_AUTHORIZATION}" ]]; then
+#          jira_auth=$(echo -n "${JIRA_USERNAME}:${JIRA_API_TOKEN}" | base64 | tr -d '\n')
+#        else
+#          jira_auth="${JIRA_AUTHORIZATION}"
+#        fi
+#        jira_auth_header="Authorization: Basic $jira_auth"
+#
+#        echo "Linking Jira issue to epic"
+#        epic_link_body='{
+#          "type": {
+#            "name": "Dependency",
+#            "inward": "has dependency",
+#            "outward": "depends on"
+#          },
+#          "inwardIssue": {
+#            "key": "${{ inputs.JIRA_EPIC_KEY }}"
+#          },
+#          "outwardIssue": {
+#            "key": "${{ steps.create_jira_issue.outputs.jira_issue_key }}"
+#          }
+#        }'
+#        link_epic_response=$(curl --silent -w "%{http_code}" -o /tmp/link_epic_response.json -H "$jira_auth_header" -X POST -H "Content-Type: application/json" --data "${epic_link_body}" "${{ inputs.JIRA_URL }}/rest/api/2/issueLink")
+#
+#        http_status=$(tail -n1 <<< "$link_epic_response")
+#        if [[ $http_status != 2* ]]; then
+#          echo "Linking epic failed with status $http_status"
+#          exit 1
+#        fi
+#        echo "Linked jira issue ${{ steps.create_jira_issue.outputs.jira_issue_key }} to jira epic ${{ inputs.JIRA_EPIC_KEY }}"
 
     - name: Adding label to GitHub issue
       if: ${{ env.NeedsJiraUpdate == 'true' }}
