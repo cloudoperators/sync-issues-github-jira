@@ -1,5 +1,5 @@
 # Sync issues from GitHub to Jira
-
+[![REUSE status](https://api.reuse.software/badge/github.com/cloudoperators/sync-issues-github-jira)](https://api.reuse.software/info/github.com/cloudoperators/sync-issues-github-jira)
 Example github workflow
 
 ```yaml

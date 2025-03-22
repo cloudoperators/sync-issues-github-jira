@@ -1,37 +1,38 @@
-name: 'Sync github issues to jira'
+name: "Sync github issues to jira"
+description: "Sync github issues to jira"
 inputs:
   JIRA_URL:
-    description: Jira URL domain to be stored as a secret.
+    description: "Jira URL domain to be stored as a secret."
     required: true
   JIRA_USERNAME:
-    description: Jira username to be stored as a secret. Provide with Jira API token.
+    description: "Jira username to be stored as a secret. Provide with Jira API token."
     required: false
   JIRA_API_TOKEN:
-    description: Jira API token to be stored as a secret. Provide with Jira username.
+    description: "Jira API token to be stored as a secret. Provide with Jira username."
     required: false
   JIRA_AUTHORIZATION:
-    description: Jira authorization to be stored as a secret. Mutually exclusive with JIRA_USERNAME and JIRA_API_TOKEN.
+    description: "Jira authorization to be stored as a secret. Mutually exclusive with JIRA_USERNAME and JIRA_API_TOKEN."
     required: false
   JIRA_COMPONENT:
-    description: Jira component to be stored as a secret.
+    description: "Jira component to be stored as a secret."
     required: true
   JIRA_PROJECT_KEY:
-    description: Jira project key to be stored as a secret.
+    description: "Jira project key to be stored as a secret."
     required: true
   JIRA_EPIC_KEY:
-    description: Jira epic key to be stored as a secret.
+    description: "Jira epic key to be stored as a secret."
     required: true
   JIRA_ISSUE_TYPE:
-    description: Jira issue type.
+    description: "Jira issue type."
     required: false
     default: "Roadmap Item"
   GITHUB_TOKEN:
-    description: 'GITHUB_TOKEN to be stored as a secret'
+    description: "GITHUB_TOKEN to be stored as a secret"
     required: false
   label:
-    description: 'Label which will trigger a Jira import.'
+    description: "Label which will trigger a Jira import."
     required: true
-    default: 'jira'
+    default: "jira"
 
 runs:
   using: "composite"
